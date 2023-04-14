@@ -11,14 +11,14 @@ void set_max_height(int height) {
 }
 
 node_t* create_node(int key, int value, int height) {
-    node_t* new_node = (node_t*) malloc(sizeof(node_t));
-    new_node->key = key;
-    new_node->value = value;
-    new_node->height = height;
-    new_node->next = NULL;
-    new_node->top = NULL;
-    new_node->down = NULL;
-    return new_node;
+    node_t* node = (node_t*) malloc(sizeof(node_t));
+    node->key = key;
+    node->value = value;
+    node->height = height;
+    node->next = NULL;
+    node->top = NULL;
+    node->down = NULL;
+    return node;
 }
 
 node_t* create_nodes() {
@@ -52,18 +52,14 @@ void print_skip_list(const node_t* head) {
 node_t* find(int key, const node_t* head) {
     node_t* current = (node_t*) head;
 
-    int interactions = 0;
-
     while (current != NULL) {
         if (current->key == key) {
-            printf("Found %d in %d interactions\n", key, interactions);
             return current;
         } else if (current->next == NULL || current->next->key > key) {
             current = current->down;
         } else {
             current = current->next;
         }
-        interactions++;
     }
     return NULL;
 }
