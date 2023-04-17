@@ -3,17 +3,17 @@
 //
 
 #include "skip_list.h"
+#include "generator.h"
 
-int MAX_HEIGHT = 3;
-
-void set_max_height(int height) {
-    MAX_HEIGHT = height;
+void assign_new_head(node_t* new_head, node_t** old_head) {
+    new_head->down = *old_head;
+    (*old_head)->top = new_head;
+    *old_head = new_head;
 }
 
-node_t* create_node(int key, int value, int height) {
+node_t* create_node(int32_t key, u_int32_t height) {
     node_t* node = (node_t*) malloc(sizeof(node_t));
     node->key = key;
-    node->value = value;
     node->height = height;
     node->next = NULL;
     node->top = NULL;
@@ -21,19 +21,7 @@ node_t* create_node(int key, int value, int height) {
     return node;
 }
 
-node_t* create_nodes() {
-    node_t* head = create_node(0, 0, MAX_HEIGHT - 1);
-    node_t* current = head;
-    for (int i = head->height - 1; i >= 0; i--) {
-        node_t* new_node = create_node(0, 0, i);
-        current->down = new_node;
-        new_node->top = current;
-        current = new_node;
-    }
-    return head;
-}
-
-void print_skip_list(const node_t* head) {
+void print_skip_list(node_t* head) {
     node_t* current = (node_t*) head;
 
     while (current) {
@@ -49,7 +37,7 @@ void print_skip_list(const node_t* head) {
     }
 }
 
-node_t* find(int key, const node_t* head) {
+node_t* find(int32_t key, node_t* head) {
     node_t* current = (node_t*) head;
 
     while (current != NULL) {
@@ -64,8 +52,12 @@ node_t* find(int key, const node_t* head) {
     return NULL;
 }
 
-node_t* find_previous_by_key(int key, int node_height, const node_t* head) {
+node_t* find_previous_by_key(int32_t key, u_int32_t node_height, node_t* head) {
     node_t* current = (node_t*) head;
+
+    if (node_height > head->height) {
+        return NULL;
+    }
 
     while (current->height != node_height) {
         current = current->down;
@@ -82,7 +74,7 @@ node_t* find_previous_by_key(int key, int node_height, const node_t* head) {
     return current;
 }
 
-node_t* find_previous(node_t* node, const node_t* head) {
+node_t* find_previous(node_t* node, node_t* head) {
     node_t* current = (node_t*) head;
 
     while (current->height != node->height) {
@@ -100,8 +92,12 @@ node_t* find_previous(node_t* node, const node_t* head) {
     return current;
 }
 
-node_t* find_next(int key, int node_height, const node_t* head) {
+node_t* find_next(int32_t key, u_int32_t node_height, node_t* head) {
     node_t* current = (node_t*) head;
+
+    if (node_height > head->height) {
+        return NULL;
+    }
 
     while (current->height != node_height) {
         current = current->down;
@@ -120,19 +116,19 @@ node_t* find_next(int key, int node_height, const node_t* head) {
     return NULL;
 }
 
-int get_random() {
-    srand(time(NULL) + rand());
-    return rand() & 1;
-}
-
-node_t *promote(node_t* node, const node_t* head) {
-    node_t* top = create_node(node->key, node->value, node->height + 1);
+node_t *promote(node_t* node, node_t **head) {
+    node_t* top = create_node(node->key, node->height + 1);
 
     node->top = top;
     top->down = node;
 
-    node_t* previous = find_previous_by_key(top->key, top->height, head);
-    node_t* next = find_next(top->key, top->height, head);
+    node_t* previous = find_previous_by_key(top->key, top->height, *head);
+    node_t* next = find_next(top->key, top->height, *head);
+
+    if (previous == NULL) {
+        previous = create_node(-1, top->height);
+        assign_new_head(previous, head);
+    }
 
     previous->next = top;
     top->next = next;
@@ -142,8 +138,8 @@ node_t *promote(node_t* node, const node_t* head) {
     return node;
 }
 
-const node_t* insert(int key, int value, const node_t* head) {
-    node_t* current = (node_t*) head;
+node_t* insert(int32_t key, node_t** head) {
+    node_t* current = (node_t*) *head;
 
     while (current != NULL) {
         if (current->next != NULL && current->next->key < key) {
@@ -151,22 +147,23 @@ const node_t* insert(int key, int value, const node_t* head) {
         } else if (current->down != NULL) {
             current = current->down;
         } else {
-            node_t* node = create_node(key, value, current->height);
+            node_t* node = create_node(key, current->height);
             node->next = current->next;
             current->next = node;
 
-            int coin = get_random();
+            u_int32_t coin = get_next() % 100;
 
-            while (coin && node->height < MAX_HEIGHT - 1) {
+            while (coin < 50) {
+                printf("\tPROMOTED\n");
                 node = promote(node, head);
-                coin = get_random();
+                coin = get_next() % 100;
             }
 
-            return head;
+            return node;
         }
     }
 
-    return head;
+    return NULL;
 }
 
 void free_nodes(node_t* node) {
@@ -183,7 +180,7 @@ void free_nodes(node_t* node) {
     }
 }
 
-node_t* delete(int key, const node_t* head) {
+node_t* delete(int32_t key, node_t* head) {
     node_t* current = (node_t*) find(key, head);
 
     while (current != NULL) {

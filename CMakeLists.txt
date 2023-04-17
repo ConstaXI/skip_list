@@ -3,4 +3,4 @@ project(skip_list C)
 
 set(CMAKE_C_STANDARD 17)
 
-add_executable(skip_list main.c src/skip_list.c src/skip_list.h)
+add_executable(skip_list main.c src/skip_list.c src/skip_list.h src/generator.c src/generator.h)
